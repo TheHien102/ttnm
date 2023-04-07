@@ -1,11 +1,11 @@
-import { fileType, messageSendType } from "../../utils/types";
-import http from "../http";
-import { API_URL } from "./urls";
+import { fileType, messageSendType } from '../../utils/types';
+import http from '../http';
+import { API_URL } from './urls';
 
-export const CLOUD_NAME = "dzikgumce";
-export const API_KEY = "883356262461341";
-export const CLOUD_FOLDER_NAME = "Chatala";
-export const UPLOAD_PRESET = "chatala_preset";
+export const CLOUD_NAME = 'vhg2901';
+export const API_KEY = '986354319128124';
+export const CLOUD_FOLDER_NAME = 'H_C_I';
+export const UPLOAD_PRESET = 'upload-preset-hci';
 
 export const MessageApi = {
   send: async function (message: messageSendType): Promise<any> {
@@ -31,7 +31,7 @@ export const MessageApi = {
       `${API_URL.uploadFile}/${CLOUD_NAME}/auto/upload`,
       formData,
       {
-        headers: { "content-type": "multipart/form-data" },
+        headers: { 'content-type': 'multipart/form-data' },
       }
     );
   },
