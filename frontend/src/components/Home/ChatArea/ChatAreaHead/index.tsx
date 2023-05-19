@@ -1,9 +1,11 @@
-import Image from "next/image";
-import * as S from "./ChatAreaHead.styled";
-import { useSelector } from "react-redux";
-import { selectRoomInfoState } from "../../../../features/redux/slices/roomInfoSlice";
-import { useEffect, useState } from "react";
-import { selectRoomListState } from "../../../../features/redux/slices/roomListSlice";
+import Image from 'next/image';
+import * as S from './ChatAreaHead.styled';
+import { useSelector } from 'react-redux';
+import { selectRoomInfoState } from '../../../../features/redux/slices/roomInfoSlice';
+import { useEffect, useState } from 'react';
+import { selectRoomListState } from '../../../../features/redux/slices/roomListSlice';
+import { popupCallWindow } from '../../../Global/ProcessFunctions';
+import { selectUserState } from '../../../../features/redux/slices/userSlice';
 
 interface IChatAreaHead {
   setToggleOption: (value: boolean) => void;
@@ -12,6 +14,7 @@ interface IChatAreaHead {
 const ChatAreaHead = ({ setToggleOption }: IChatAreaHead) => {
   const roomInfo = useSelector(selectRoomInfoState);
   const roomList = useSelector(selectRoomListState);
+  const user = useSelector(selectUserState);
   const [status, setStatus] = useState(1);
 
   //Handle status
@@ -23,7 +26,16 @@ const ChatAreaHead = ({ setToggleOption }: IChatAreaHead) => {
   };
   useEffect(() => {
     handleStatus();
-  }, [roomList.activeList]);
+  }, [roomList.activeList, roomInfo.info]);
+
+  const getReceiverId = () => {
+    const users = roomInfo.info.roomInfo.users.filter(
+      (u) => u.uid !== user.info._id
+    );
+    const receiverIds = [];
+    users.forEach((u) => receiverIds.push(u.uid));
+    return receiverIds.toString();
+  };
 
   return (
     <S.ChatAreaHead>
@@ -33,7 +45,7 @@ const ChatAreaHead = ({ setToggleOption }: IChatAreaHead) => {
             {roomInfo.info.roomInfo.users.map(
               (user, index) =>
                 index <= 3 && (
-                  <S.ChatAvatarGroup>
+                  <S.ChatAvatarGroup key={index}>
                     <Image src={user.avatar} alt="avatar" layout="fill" />
                   </S.ChatAvatarGroup>
                 )
@@ -57,13 +69,27 @@ const ChatAreaHead = ({ setToggleOption }: IChatAreaHead) => {
           </S.ChatAreaHeadName>
           {!roomInfo.info?.roomInfo.isGroup && (
             <S.ChatAreaHeadStatus>
-              {status ? "Online" : "Offline"}
+              {status ? 'Online' : 'Offline'}
               <S.ChatAreaHeadStatusIcon status={status} />
             </S.ChatAreaHeadStatus>
           )}
         </S.ChatAreaHeadNameWrapper>
       </S.ChatAreaHeadInfo>
-      <S.ChatAreaHeadOption onClick={() => setToggleOption(true)} />
+      <S.RightWrap>
+        <S.CallButton
+          onClick={() =>
+            popupCallWindow(
+              `${document.URL}video-call?callerId=${
+                user.info._id
+              }&name=${user.info.name}&receiverIds=${getReceiverId()}`,
+              'Call from Chatala',
+              1200,
+              700
+            )
+          }
+        />
+        <S.ChatAreaHeadOption onClick={() => setToggleOption(true)} />
+      </S.RightWrap>
     </S.ChatAreaHead>
   );
 };

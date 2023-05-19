@@ -1,16 +1,19 @@
-import * as S from "./MoreOptions.styled";
-import { getFileIcon, useOutsideClick } from "../../../Global/ProcessFunctions";
-import { fileType, roomInfo, userInfo } from "../../../../utils/types";
-import Image from "next/image";
-import { IoMdArrowDropdown } from "react-icons/io";
-import { useState } from "react";
-import NicknameModal from "./NicknameModal";
-import UserInfo from "../../TopBar/UserInfo";
-import { selectUserState } from "../../../../features/redux/slices/userSlice";
-import { useSelector } from "react-redux";
-import { UsersApi } from "../../../../services/api/users";
-import GroupMembers from "./GroupMembers";
-import { selectFileState } from "../../../../features/redux/slices/fileSlice";
+import * as S from './MoreOptions.styled';
+import { getFileIcon, useOutsideClick } from '../../../Global/ProcessFunctions';
+import { fileType, roomInfo, userInfo } from '../../../../utils/types';
+import Image from 'next/image';
+import { UserAvatar } from '../../../../utils/dataConfig';
+import { IoMdArrowDropdown } from 'react-icons/io';
+import { useState } from 'react';
+import NicknameModal from './NicknameModal';
+import UserInfo from '../../TopBar/UserInfo';
+import { selectUserState } from '../../../../features/redux/slices/userSlice';
+import { useSelector } from 'react-redux';
+import { UsersApi } from '../../../../services/api/users';
+import GroupMembers from './GroupMembers';
+import { FriendApi } from '../../../../services/api/friend';
+import { selectFileState } from '../../../../features/redux/slices/fileSlice';
+import GroupNameModal from './GroupNameModel';
 
 interface IMoreOptions {
   setToggleOption: (toggle: boolean) => void;
@@ -38,13 +41,14 @@ const MoreOptions = ({
   const [toggleNickname, setToggleNickname] = useState(false);
   const [toggleFriendProfile, setToggleFriendProfile] = useState(false);
   const [toggleGroupMembers, setToggleGroupMembers] = useState(false);
+  const [toggleGroupName, setToggleGroupName] = useState(false);
   const [friendProfile, setFriendProfile] = useState<userInfo>();
 
   const user = useSelector(selectUserState);
   const roomfiles = useSelector(selectFileState);
 
-  const photos = roomfiles.list.filter((file) => file.type === "image");
-  const files = roomfiles.list.filter((file) => file.type === "file");
+  const photos = roomfiles.list.filter((file) => file.type === 'image');
+  const files = roomfiles.list.filter((file) => file.type === 'file');
 
   // in case change nickname event happend
   const userNeedChange = roomInfo.roomInfo.users.find(
@@ -60,7 +64,7 @@ const MoreOptions = ({
     setToggleFriendProfile(true);
   };
 
-  const photosClickHandler = (index) => {
+  const photosClickHandler = (index: number) => {
     setToggleImageZoom(true);
     setImageZoomList({ index, list: photos });
   };
@@ -69,7 +73,16 @@ const MoreOptions = ({
     <S.MoreOptions ref={moreOptionsRef} toggleOption={toggleOption}>
       <S.RoomInfo>
         {roomInfo.roomInfo.isGroup ? (
-          <S.RoomInfoGroupAvatar />
+          <S.RoomInfoAvatar isGroup={1}>
+            {roomInfo.roomInfo.users.map(
+              (user, index) =>
+                index <= 3 && (
+                  <S.RoomInfoAvatarGroup key={index}>
+                    <Image src={user.avatar} alt="avatar" layout="fill" />
+                  </S.RoomInfoAvatarGroup>
+                )
+            )}
+          </S.RoomInfoAvatar>
         ) : (
           <S.RoomInfoAvatar>
             <Image src={roomInfo.roomAvatar} alt="avatar" layout="fill" />
@@ -81,7 +94,9 @@ const MoreOptions = ({
               ? roomInfo.roomInfo.groupName
               : roomInfo.roomName}
           </S.RoomInfoName>
-          {roomInfo.roomInfo.isGroup && <S.RoomInfoNameEditIcon />}
+          {roomInfo.roomInfo.isGroup && (
+            <S.RoomInfoNameEditIcon onClick={() => setToggleGroupName(true)} />
+          )}
         </S.RoomInfoNameWrap>
       </S.RoomInfo>
       <S.OptionWrap>
@@ -101,17 +116,21 @@ const MoreOptions = ({
               Group Members
             </S.NormalItem>
           )}
-          {!roomInfo.roomInfo.isGroup && <S.DeleteItem>Block</S.DeleteItem>}
-          <S.DeleteItem>Delete this chat</S.DeleteItem>
+          {!roomInfo.roomInfo.isGroup && (
+            <S.DeleteItem onClick={() => FriendApi.block(userNeedChange.uid)}>
+              Block
+            </S.DeleteItem>
+          )}
+          {/* <S.DeleteItem>Delete this chat</S.DeleteItem> */}
         </S.WhiteBox>
         <S.WhiteBox>
           <S.Title onClick={() => setPhotoExtend(!photoExtend)}>
             Photos
             <IoMdArrowDropdown
               style={{
-                fontSize: "24px",
-                transition: "300ms",
-                transform: !photoExtend ? "rotate(-90deg)" : "none",
+                fontSize: '24px',
+                transition: '300ms',
+                transform: !photoExtend ? 'rotate(-90deg)' : 'none',
               }}
             />
           </S.Title>
@@ -139,14 +158,14 @@ const MoreOptions = ({
             Files
             <IoMdArrowDropdown
               style={{
-                fontSize: "24px",
-                transition: "300ms",
-                transform: !fileExtend ? "rotate(-90deg)" : "none",
+                fontSize: '24px',
+                transition: '300ms',
+                transform: !fileExtend ? 'rotate(-90deg)' : 'none',
               }}
             />
           </S.Title>
           <S.ExtendContent>
-            <S.FileWrap wraptype={"file"} visible={fileExtend}>
+            <S.FileWrap wraptype={'file'} visible={fileExtend}>
               {files.map((file, index) => (
                 <S.FilePreview
                   key={index}
@@ -178,6 +197,12 @@ const MoreOptions = ({
       )}
       {toggleGroupMembers && (
         <GroupMembers setToggleGroupMembers={setToggleGroupMembers} />
+      )}
+      {toggleGroupName && (
+        <GroupNameModal
+          setToggleGroupName={setToggleGroupName}
+          roomInfo={roomInfo}
+        />
       )}
     </S.MoreOptions>
   );

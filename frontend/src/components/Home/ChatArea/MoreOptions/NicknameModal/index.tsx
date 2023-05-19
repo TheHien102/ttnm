@@ -1,11 +1,9 @@
 import { useRef } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import {
   roomInfoActions,
-  selectRoomInfoState,
 } from "../../../../../features/redux/slices/roomInfoSlice";
 import { roomListActions } from "../../../../../features/redux/slices/roomListSlice";
-import { selectUserState } from "../../../../../features/redux/slices/userSlice";
 import { RoomApi } from "../../../../../services/api/room";
 import { roomInfo, roomUser } from "../../../../../utils/types";
 import * as S from "./NicknameModal.styled";
@@ -57,7 +55,7 @@ const NicknameModal = ({
       <S.NicknameOverlay onClick={() => setToggleNickname(false)} />
       <S.NicknameBody>
         <S.NicknameTitle>
-          Change nickname for {roomInfo.roomName}
+          Change nickname for {userNeedChange.nickname}
         </S.NicknameTitle>
         <S.NicknameInput maxLength={50} ref={input} />
         <S.NicknameSave onClick={saveNickname}>Save</S.NicknameSave>

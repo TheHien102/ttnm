@@ -1,30 +1,34 @@
-import { FormEvent, MutableRefObject, Ref, useState, useEffect } from "react";
-import * as S from "./ChatAreaMainForm.styled";
-import EmojiPicker, { EmojiClickData, EmojiStyle } from "emoji-picker-react";
-import { useDispatch, useSelector } from "react-redux";
-import { selectRoomInfoState } from "../../../../features/redux/slices/roomInfoSlice";
-import { DropzoneInputProps } from "react-dropzone";
-import { messageRawType, roomUser } from "../../../../utils/types";
+import { FormEvent, Ref, useState, useEffect, useMemo, useRef } from 'react';
+import * as S from './ChatAreaMainForm.styled';
+import EmojiPicker, { EmojiClickData, EmojiStyle } from 'emoji-picker-react';
+import { useDispatch, useSelector } from 'react-redux';
+import { selectRoomInfoState } from '../../../../features/redux/slices/roomInfoSlice';
+import { DropzoneInputProps } from 'react-dropzone';
+import { MentionList, messageRawType, roomUser } from '../../../../utils/types';
 import {
   selectUtilState,
   utilActions,
-} from "../../../../features/redux/slices/utilSlice";
-import { selectMessageState } from "../../../../features/redux/slices/messageSlice";
-import { selectFileState } from "../../../../features/redux/slices/fileSlice";
-import Image from "next/image";
-import { getReplyInfo } from "../../../Global/ProcessFunctions";
-import { selectUserState } from "../../../../features/redux/slices/userSlice";
+} from '../../../../features/redux/slices/utilSlice';
+import { selectMessageState } from '../../../../features/redux/slices/messageSlice';
+import { selectFileState } from '../../../../features/redux/slices/fileSlice';
+import Image from 'next/image';
+import {
+  getReplyInfo,
+  useOutsideClick,
+} from '../../../Global/ProcessFunctions';
+import { selectUserState } from '../../../../features/redux/slices/userSlice';
+import { ContentState, EditorState, Modifier, convertToRaw } from 'draft-js';
+import Editor from '@draft-js-plugins/editor';
+import createMentionPlugin from '@draft-js-plugins/mention';
+
+import '@draft-js-plugins/mention/lib/plugin.css';
+import 'draft-js/dist/Draft.css';
 
 interface IChatAreaMainForm {
   setFieldValue: any;
-  toggleEmoji: boolean;
-  emojiRef: MutableRefObject<HTMLInputElement>;
-  chatInput: Ref<HTMLSpanElement>;
   values: messageRawType;
   isDragActive: boolean;
   isSubmitting: boolean;
-  emojiClicked: (emoData: EmojiClickData, setFieldValue: any) => void;
-  setToggleEmoji: (toggleEmoji: boolean) => void;
   onInputChange: () => void;
   submitForm: () => void;
   getInputProps: <T extends DropzoneInputProps>(props?: T) => T;
@@ -37,14 +41,9 @@ interface IChatAreaMainForm {
 
 const ChatAreaMainForm = ({
   setFieldValue,
-  emojiRef,
-  toggleEmoji,
-  chatInput,
   values,
   isDragActive,
   isSubmitting,
-  emojiClicked,
-  setToggleEmoji,
   onInputChange,
   submitForm,
   getInputProps,
@@ -62,7 +61,100 @@ const ChatAreaMainForm = ({
     undefined
   );
   const [replyTarget, setReplyTarget] = useState<roomUser>(undefined);
+  const [toggleEmoji, setToggleEmoji] = useState(false);
 
+  //Mention
+  const refEditor = useRef<Editor>(null);
+  const [editorState, setEditorState] = useState(() =>
+    EditorState.createEmpty()
+  );
+
+  const getMentionList = (): MentionList => {
+    const list: MentionList = [];
+    roomInfo.info.roomInfo.users.forEach(
+      (urs) =>
+        urs.uid !== user.info._id &&
+        list.push({ name: urs.nickname, avatar: urs.avatar, uid: urs._id })
+    );
+    return list;
+  };
+
+  const mentionList: MentionList = getMentionList();
+  const [open, setOpen] = useState(false);
+  const [suggestions, setSuggestions] = useState<MentionList>(mentionList);
+
+  const { MentionSuggestions, plugins } = useMemo(() => {
+    const mentionPlugin = createMentionPlugin({
+      mentionPrefix: '@',
+      supportWhitespace: true,
+    });
+    // eslint-disable-next-line no-shadow
+    const { MentionSuggestions } = mentionPlugin;
+    // eslint-disable-next-line no-shadow
+    const plugins = [mentionPlugin];
+    return { plugins, MentionSuggestions };
+  }, []);
+
+  //Editor Event
+  const suggestionFilter = (searchValue: string, suggestData: MentionList) => {
+    const value = searchValue.toLowerCase();
+
+    const filteredSuggestions = suggestData.filter(
+      (suggestion) =>
+        value === '' ||
+        !value ||
+        (suggestion.name && suggestion.name.toLowerCase().indexOf(value) > -1)
+    );
+
+    return filteredSuggestions;
+  };
+  const onOpenChange = (_open: boolean) => {
+    setOpen(_open);
+  };
+  const onSearchChange = ({ value }: { value: string }) => {
+    setSuggestions(suggestionFilter(value, mentionList));
+  };
+  const onAddMention = (entry: any) => {
+    // console.log(entry);
+  };
+
+  const editorChange = (newEditorState: EditorState) => {
+    setEditorState(newEditorState);
+
+    const currentPlainText = editorState.getCurrentContent().getPlainText();
+    const newPlainText = newEditorState.getCurrentContent().getPlainText();
+    if (currentPlainText.trim() !== newPlainText.trim()) {
+      onInputChange();
+    }
+  };
+  const insertText = (text: string) => {
+    const contentState = editorState.getCurrentContent();
+    const selectionState = editorState.getSelection();
+    const newContentState = Modifier.insertText(
+      contentState,
+      selectionState,
+      text
+    );
+
+    const newEditorState = EditorState.push(
+      editorState,
+      newContentState,
+      'insert-characters'
+    );
+    editorChange(newEditorState);
+  };
+
+  //Emoji
+  const handleEmojiOutsideClick = () => {
+    setToggleEmoji(false);
+  };
+  const emojiRef = useOutsideClick(handleEmojiOutsideClick);
+  const emojiClicked = (emoData: EmojiClickData) => {
+    console.log(editorState.getCurrentContent().getPlainText() + emoData.emoji);
+    insertText(emoData.emoji);
+  };
+
+  //Reply
   const findReplyInfo = () => {
     const result = getReplyInfo(
       messages.list,
@@ -71,7 +163,7 @@ const ChatAreaMainForm = ({
       roomInfo.info.roomInfo.users
     );
 
-    if(result){
+    if (result) {
       setReplyMsg(result.replyMsg);
       setReplyTarget(result.replyTarget);
     }
@@ -83,10 +175,44 @@ const ChatAreaMainForm = ({
     }
   }, [util.replyId]);
 
+  //Room change
+  const clearChatInput = () => {
+    const newEditorState = EditorState.push(
+      editorState,
+      ContentState.createFromText(''),
+      'remove-range'
+    );
+    setEditorState(newEditorState);
+  };
+  useEffect(() => {
+    clearChatInput();
+    setFieldValue('msg', '');
+    setFieldValue('files', []);
+    dispatch(utilActions.clearReplyId());
+  }, [roomInfo.info]);
+
   const cancleReply = () => {
     dispatch(utilActions.clearReplyId());
     setReplyMsg(undefined);
     setReplyTarget(undefined);
+  };
+
+  const preprocessSubmit = () => {
+    setFieldValue('msg', editorState.getCurrentContent().getPlainText());
+
+    const contentState = editorState.getCurrentContent();
+    const raw = convertToRaw(contentState);
+    const mentionedUsers = [];
+    for (let key in raw.entityMap) {
+      const ent = raw.entityMap[key];
+      if (ent.type === 'mention') {
+        mentionedUsers.push({
+          name: ent.data.mention.name,
+          uid: ent.data.mention.uid,
+        });
+      }
+    }
+    setFieldValue('mentions', mentionedUsers);
   };
 
   return (
@@ -99,18 +225,26 @@ const ChatAreaMainForm = ({
               emojiStyle={EmojiStyle.TWITTER}
               height={400}
               width={400}
-              onEmojiClick={(emoData) => emojiClicked(emoData, setFieldValue)}
+              onEmojiClick={(emoData) => emojiClicked(emoData)}
             />
           </S.ChatAreaMainInputEmojiPicker>
         )}
         <S.ChatAreaMainInputFile htmlFor="fileInput">+</S.ChatAreaMainInputFile>
         <S.ChatAreaMainInputMsgOuter>
           {util.replyId && replyMsg && (
-            <S.ChatAreaMainInputReply isImg={replyMsg.type === "image" ? "true" : "false"}>
+            <S.ChatAreaMainInputReply
+              isImg={replyMsg.type === 'image' ? 'true' : 'false'}
+            >
               <S.ChatAreaMainInputReplyLabel>
-                Replying to <b>{replyTarget.uid !== user.info._id ? replyTarget?.nickname : "yourself"}</b>:
+                Replying to{' '}
+                <b>
+                  {replyTarget.uid !== user.info._id
+                    ? replyTarget?.nickname
+                    : 'yourself'}
+                </b>
+                :
               </S.ChatAreaMainInputReplyLabel>
-              {replyMsg.type === "image" ? (
+              {replyMsg.type === 'image' ? (
                 <S.ChatAreaMainInputReplyImage>
                   <Image src={replyMsg.msg} alt="Image" layout="fill" />
                 </S.ChatAreaMainInputReplyImage>
@@ -122,25 +256,33 @@ const ChatAreaMainForm = ({
               <S.ChatAreaMainInputReplyCancel onClick={cancleReply} />
             </S.ChatAreaMainInputReply>
           )}
-          <S.ChatAreaMainInputMsg isReplying={util.replyId ? "true" : "false"}>
+          <S.ChatAreaMainInputMsg isReplying={util.replyId ? 'true' : 'false'}>
             <S.ChatAreaMainInputEmoji onClick={() => setToggleEmoji(true)} />
-            <S.ChatAreaMainInputText
-              username={roomInfo.info!.roomName}
-              contentEditable
-              ref={chatInput}
-              onInput={() => onInputChange()}
-              onKeyDown={(e) => {
-                if (e.code === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  submitForm();
-                }
-              }}
-            />
+            <S.ChatAreaMainInputText>
+              <Editor
+                editorState={editorState}
+                onChange={editorChange}
+                plugins={plugins}
+                placeholder={`Write something to ${roomInfo.info.roomName}...`}
+                ref={refEditor}
+              />
+              {roomInfo.info.roomInfo.isGroup && (
+                <MentionSuggestions
+                  open={open}
+                  onOpenChange={onOpenChange}
+                  suggestions={suggestions}
+                  onSearchChange={onSearchChange}
+                  onAddMention={onAddMention}
+                />
+              )}
+            </S.ChatAreaMainInputText>
             <S.ChatAreaMainInputButtonSend
               type="button"
               onClick={() => {
                 if (!isSubmitting) {
+                  preprocessSubmit();
                   submitForm();
+                  clearChatInput();
                 }
               }}
             >
@@ -151,8 +293,8 @@ const ChatAreaMainForm = ({
       </S.ChatAreaMainInput>
       <input
         {...getInputProps({
-          type: "file",
-          id: "fileInput",
+          type: 'file',
+          id: 'fileInput',
           hidden: true,
           multiple: true,
           onChange: (e) => fileChoosen(e, values, setFieldValue),

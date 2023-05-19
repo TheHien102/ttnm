@@ -1,23 +1,24 @@
-import Image from "next/image";
-import { useEffect, useState } from "react";
-import { useSelector } from "react-redux";
-import { selectFileState } from "../../../../features/redux/slices/fileSlice";
-import { selectRoomInfoState } from "../../../../features/redux/slices/roomInfoSlice";
-import { selectUserState } from "../../../../features/redux/slices/userSlice";
-import { fileType, messageType } from "../../../../utils/types";
+import Image from 'next/image';
+import { useEffect, useRef, useState } from 'react';
+import { useSelector } from 'react-redux';
+import { selectFileState } from '../../../../features/redux/slices/fileSlice';
+import { selectRoomInfoState } from '../../../../features/redux/slices/roomInfoSlice';
+import { selectUserState } from '../../../../features/redux/slices/userSlice';
+import { fileType, messageType } from '../../../../utils/types';
 import {
   formatDate,
   getFileIcon,
   getReplyInfo,
-} from "../../../Global/ProcessFunctions";
-import * as S from "./ChatMsg.styled";
-import ChatMsgOption from "./ChatMsgOption";
-import { selectMessageState } from "../../../../features/redux/slices/messageSlice";
-import { MdOutlineReply } from "react-icons/md";
+} from '../../../Global/ProcessFunctions';
+import * as S from './ChatMsg.styled';
+import ChatMsgOption from './ChatMsgOption';
+import { selectMessageState } from '../../../../features/redux/slices/messageSlice';
+import { MdOutlineReply } from 'react-icons/md';
 
 interface IChatMsg {
   data: messageType;
   position: string;
+  isLastMsg: boolean;
   setToggleImageZoom: (toggle: boolean) => void;
   setImageZoomList: (value: { index: number; list: fileType[] }) => void;
 }
@@ -25,10 +26,12 @@ interface IChatMsg {
 const ChatMsg = ({
   data,
   position,
+  isLastMsg,
   setToggleImageZoom,
   setImageZoomList,
 }: IChatMsg) => {
   const [toggleOption, setToggleOption] = useState(false);
+  const [toggleTooltip, setToggleTooltip] = useState(false);
   const [images, setImages] = useState<fileType[]>([]);
   const [files, setFiles] = useState<fileType[]>([]);
 
@@ -46,7 +49,7 @@ const ChatMsg = ({
   const handleReplyClick = () => {
     document
       .getElementById(data.replyId)
-      .scrollIntoView({ behavior: "smooth", block: "center" });
+      .scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
   const setReplyLabel = () => {
     const message = messages.list.find((it) => it._id === data.replyId);
@@ -70,7 +73,7 @@ const ChatMsg = ({
           return `${replyUser.nickname} replying to themselves`;
         else return `${replyUser.nickname} replying to ${replyTarget.nickname}`;
       }
-    } else return "";
+    } else return '';
   };
   const replyLabel = setReplyLabel();
 
@@ -82,7 +85,7 @@ const ChatMsg = ({
         (it) => it._id.toString() === id.toString()
       );
       if (file) {
-        if (file.type === "image") _images.push(file);
+        if (file.type === 'image') _images.push(file);
         else _files.push(file);
       }
     });
@@ -115,9 +118,38 @@ const ChatMsg = ({
       const sender = roomInfo.info.roomInfo.users.find(
         (user) => user.uid === data.senderId
       );
-      return sender!.nickname + " | " + formatDate(data.updatedAt, ".", true);
+      return sender!.nickname + ' | ' + formatDate(data.updatedAt, '.', true);
     }
-    return formatDate(data.updatedAt, ".", true);
+    return formatDate(data.updatedAt, '.', true);
+  };
+
+  const boldString = (str: string, substr: string) => {
+    str = str.replace(RegExp(substr, 'g'), `<b>${substr}</b>`);
+    return str;
+  };
+
+  const preProcessMsg = () => {
+    let msg = data.msg;
+    if (data.mentions.length > 0) {
+      data.mentions.map((it) => {
+        msg = boldString(msg, it.name);
+      });
+    }
+    return msg;
+  };
+
+  const tooltip = useRef<number>();
+  const onHoverMsg = (show: boolean) => {
+    if (show) {
+      tooltip.current = window.setTimeout(() => {
+        setToggleTooltip(true);
+      }, 500);
+    } else {
+      window.clearTimeout(tooltip.current);
+      if (toggleTooltip) {
+        setToggleTooltip(false);
+      }
+    }
   };
 
   return (
@@ -125,7 +157,13 @@ const ChatMsg = ({
       {!data.deleted &&
         (data.senderId === user.info._id ? (
           <S.ChatMsgRight id={data._id} position={position}>
-            <S.ChatMsgWrapper>
+            <S.ChatMsgWrapper
+              onMouseEnter={() => onHoverMsg(true)}
+              onMouseLeave={() => onHoverMsg(false)}
+            >
+              {toggleTooltip && (
+                <S.ChatTooltip>{getSenderName()}</S.ChatTooltip>
+              )}
               {!data.unSend ? (
                 <>
                   {files.length === 0 && images.length === 0 && (
@@ -137,13 +175,13 @@ const ChatMsg = ({
                         {replyLabel}
                         <MdOutlineReply />
                       </S.ChatReplyLabel>
-                      {replyMsg.type === "image" ? (
+                      {replyMsg.type === 'image' ? (
                         <S.ChatMsgReplyImage>
                           <img src={replyMsg.msg} alt="reply img" />
                         </S.ChatMsgReplyImage>
                       ) : (
                         <S.ChatMsgReplyText>
-                          {replyMsg.type === "file" && (
+                          {replyMsg.type === 'file' && (
                             <S.ChatMsgReplyFileIcon>
                               {getFileIcon({ name: replyMsg.msg })}
                             </S.ChatMsgReplyFileIcon>
@@ -153,7 +191,11 @@ const ChatMsg = ({
                       )}
                     </S.ChatMsgReply>
                   )}
-                  {data.msg !== "" && <S.ChatMsgText>{data.msg}</S.ChatMsgText>}
+                  {data.msg !== '' && (
+                    <S.ChatMsgText
+                      dangerouslySetInnerHTML={{ __html: preProcessMsg() }}
+                    ></S.ChatMsgText>
+                  )}
                   {images.length > 0 && (
                     <S.ChatMsgFileImages imgNum={images?.length}>
                       {images?.map((image, index) => (
@@ -178,7 +220,7 @@ const ChatMsg = ({
                     <S.ChatMsgFiles>
                       {files.map(
                         (file, index) =>
-                          file.type === "file" && (
+                          file.type === 'file' && (
                             <S.ChatMsgFile
                               key={index}
                               href={file.url}
@@ -209,6 +251,7 @@ const ChatMsg = ({
                   <ChatMsgOption
                     msgId={data._id}
                     setToggleOption={setToggleOption}
+                    isLastMsg={isLastMsg}
                   />
                 )}
               </S.ChatMsgMoreIconWrapper>
@@ -224,7 +267,13 @@ const ChatMsg = ({
                 objectFit="cover"
               />
             </S.ChatMsgAvatar>
-            <S.ChatMsgWrapper>
+            <S.ChatMsgWrapper
+              onMouseEnter={() => onHoverMsg(true)}
+              onMouseLeave={() => onHoverMsg(false)}
+            >
+              {toggleTooltip && (
+                <S.ChatTooltip>{getSenderName()}</S.ChatTooltip>
+              )}
               {!data.unSend && files.length === 0 && images.length === 0 && (
                 <S.ChatMsgTextTail />
               )}
@@ -234,13 +283,13 @@ const ChatMsg = ({
                     {replyLabel}
                     <MdOutlineReply />
                   </S.ChatReplyLabel>
-                  {replyMsg.type === "image" ? (
+                  {replyMsg.type === 'image' ? (
                     <S.ChatMsgReplyImage>
                       <img src={replyMsg.msg} alt="reply img" />
                     </S.ChatMsgReplyImage>
                   ) : (
                     <S.ChatMsgReplyText>
-                      {replyMsg.type === "file" && (
+                      {replyMsg.type === 'file' && (
                         <S.ChatMsgReplyFileIcon>
                           {getFileIcon({ name: replyMsg.msg })}
                         </S.ChatMsgReplyFileIcon>
@@ -254,7 +303,7 @@ const ChatMsg = ({
                 <S.ChatMsgUnSend>Message has been unsend</S.ChatMsgUnSend>
               ) : (
                 <>
-                  {data.msg !== "" && <S.ChatMsgText>{data.msg}</S.ChatMsgText>}
+                  {data.msg !== '' && <S.ChatMsgText>{data.msg}</S.ChatMsgText>}
                   {images?.length > 0 && (
                     <S.ChatMsgFileImages imgNum={images?.length}>
                       {images?.map((image, index) => (
@@ -278,7 +327,7 @@ const ChatMsg = ({
                     <S.ChatMsgFiles>
                       {files.map(
                         (file, index) =>
-                          file.type === "file" && (
+                          file.type === 'file' && (
                             <S.ChatMsgFile
                               key={index}
                               href={file.url}
@@ -311,6 +360,7 @@ const ChatMsg = ({
                     msgId={data._id}
                     setToggleOption={setToggleOption}
                     isleft={1}
+                    isLastMsg={isLastMsg}
                   />
                 )}
               </S.ChatMsgMoreIconWrapper>

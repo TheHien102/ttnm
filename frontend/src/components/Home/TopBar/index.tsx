@@ -1,35 +1,36 @@
-import Image from "next/image";
-import * as S from "./TopBar.styled";
-import React, { useEffect, useState } from "react";
-import Logo from "../../../assets/imgs/LogoFullLong.png";
-import UserInfo from "./UserInfo";
-import NotiModal from "./NotiModal";
-import SettingsModal from "./SettingsModal";
-import { UsersApi } from "../../../services/api/users";
-import SearchModal from "./SearchModal";
-import { useSelector, useDispatch } from "react-redux";
+import Image from 'next/image';
+import * as S from './TopBar.styled';
+import React, { useEffect, useState } from 'react';
+import Logo from '../../../assets/imgs/LogoFullLong.png';
+import UserInfo from './UserInfo';
+import NotiModal from './NotiModal';
+import SettingsModal from './SettingsModal';
+import { UsersApi } from '../../../services/api/users';
+import SearchModal from './SearchModal';
+import { useSelector, useDispatch } from 'react-redux';
 import {
   selectUserState,
   userActions,
-} from "../../../features/redux/slices/userSlice";
-import { useRouter } from "next/router";
-import { SearchResult } from "../../../utils/types";
+} from '../../../features/redux/slices/userSlice';
+import { useRouter } from 'next/router';
+import { SearchResult } from '../../../utils/types';
 import {
   roomInfoActions,
   selectRoomInfoState,
-} from "../../../features/redux/slices/roomInfoSlice";
-import { roomListActions } from "../../../features/redux/slices/roomListSlice";
-import { FriendApi } from "../../../services/api/friend";
-import { useSocketContext } from "../../../contexts/socket";
+} from '../../../features/redux/slices/roomInfoSlice';
+import { roomListActions } from '../../../features/redux/slices/roomListSlice';
+import { FriendApi } from '../../../services/api/friend';
+import { useSocketContext } from '../../../contexts/socket';
 
 const TopBar = () => {
   const [userInfoModal, setUserInfoModal] = useState(false);
   const [activeNotiModal, setActiveNotiModal] = useState(false);
   const [settingVisible, setSettingVisible] = useState(false);
   const [searchResult, setSearchResult] = useState<SearchResult[]>([]);
-  const [searchInput, setSearchInput] = useState("");
+  const [searchInput, setSearchInput] = useState('');
   const [searchModal, setSearchModal] = useState(false);
   const [action, setAction] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
 
   const socket = useSocketContext();
   const user = useSelector(selectUserState);
@@ -51,12 +52,16 @@ const TopBar = () => {
 
   const logout = async () => {
     await UsersApi.logout();
+
+    //Remove call token
+    sessionStorage.removeItem('callToken');
+
     //@ts-ignore
-    socket.emit("logout", roomInfo.info?.roomInfo._id);
+    socket.emit('logout', roomInfo.info?.roomInfo._id);
     dispatch(userActions.clearUserInfo(null));
     dispatch(roomInfoActions.clearRoomInfo(null));
     dispatch(roomListActions.clearRoomList(null));
-    router.push("/login");
+    router.push('/login');
   };
 
   const getSearchResult = async () => {
@@ -66,18 +71,20 @@ const TopBar = () => {
         const res = await UsersApi.userFind({ search: searchInput });
         setSearchResult(res.result);
         setSearchModal(true);
+        setSearchLoading(false);
       } catch (err) {
         console.log(err);
       }
     } else {
-      setSearchModal(false);
+      setSearchResult([]);
+      // setSearchModal(false);
     }
   };
 
   useEffect(() => {
     getLoggedUser();
     getListNotify();
-    socket.on("receiveNoti", () => {
+    socket.on('receiveNoti', () => {
       getListNotify();
     });
   }, []);
@@ -85,18 +92,24 @@ const TopBar = () => {
   useEffect(() => {
     if (user.loading === false && user.info) {
       // @ts-ignore
-      socket.emit("logged", user.info._id);
-      socket.on("getUsers", (users) => {
-        console.log(users);
+      socket.emit('logged', user.info._id);
+      socket.on('getUsers', (users) => {
+        console.log('users', users);
         dispatch(
           roomListActions.setActiveRoom({ users, loggedUid: user.info._id })
         );
       });
     }
+
+    return () => {
+      socket.off('getUsers');
+    };
   }, [user]);
 
   useEffect(() => {
     let t: any;
+    setSearchResult([]);
+    setSearchLoading(true);
     t = setTimeout(() => {
       getSearchResult();
     }, 500);
@@ -114,9 +127,9 @@ const TopBar = () => {
       <S.Wrapper>
         <S.LeftWrapper onClick={() => setUserInfoModal(true)}>
           <S.Avatar>
-            {user.info && (
+            {user.info?.avatar && user.info.avatar !== '' && (
               <Image
-                src={user.info?.avatar}
+                src={user.info.avatar}
                 alt="avatar"
                 layout="fill"
                 objectFit="cover"
@@ -144,6 +157,7 @@ const TopBar = () => {
                 setSearchModal={setSearchModal}
                 searchResult={searchResult}
                 setAction={setAction}
+                loading={searchLoading}
               />
             )}
           </S.Search>
@@ -152,7 +166,7 @@ const TopBar = () => {
               <S.OptionNotify onClick={() => setActiveNotiModal(true)} />
               {listNoti.length > 0 && (
                 <S.OptionNotifyNumber number={listNoti.length}>
-                  {listNoti.length < 100 ? listNoti.length : "99+"}
+                  {listNoti.length < 100 ? listNoti.length : '99+'}
                 </S.OptionNotifyNumber>
               )}
             </S.OptionNotifyWrapper>

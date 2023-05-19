@@ -1,24 +1,22 @@
-import ChatPreviewItem from "../ChatPreviewItem";
-import * as S from "./ChatList.styled";
-import React from "react";
-import { useState, useEffect } from "react";
-import { RoomApi } from "../../../../services/api/room";
-import { ClipLoader } from "react-spinners";
-import { useSelector, useDispatch } from "react-redux";
+import ChatPreviewItem from '../ChatPreviewItem';
+import * as S from './ChatList.styled';
+import React from 'react';
+import { useState, useEffect } from 'react';
+import { RoomApi } from '../../../../services/api/room';
+import { ClipLoader } from 'react-spinners';
+import { useSelector, useDispatch } from 'react-redux';
 import {
   roomListActions,
   selectRoomListState,
-} from "../../../../features/redux/slices/roomListSlice";
+} from '../../../../features/redux/slices/roomListSlice';
 import {
   roomInfoActions,
   selectRoomInfoState,
-} from "../../../../features/redux/slices/roomInfoSlice";
-import { messageActions } from "../../../../features/redux/slices/messageSlice";
-import { useSocketContext } from "../../../../contexts/socket";
-import { fileActions } from "../../../../features/redux/slices/fileSlice";
-import { utilActions } from "../../../../features/redux/slices/utilSlice";
-import { selectUserState } from "../../../../features/redux/slices/userSlice";
-import { roomInfo, userInfo } from "../../../../utils/types";
+} from '../../../../features/redux/slices/roomInfoSlice';
+import { messageActions } from '../../../../features/redux/slices/messageSlice';
+import { useSocketContext } from '../../../../contexts/socket';
+import { fileActions } from '../../../../features/redux/slices/fileSlice';
+import { selectUserState } from '../../../../features/redux/slices/userSlice';
 
 const ChatList = () => {
   const [roomSelected, setRoomSelected] = useState<number>(-1);
@@ -31,12 +29,8 @@ const ChatList = () => {
   const dispatch = useDispatch();
 
   const seenRoom = async (roomId: string) => {
-    const res = await RoomApi.seenRoom(
-      user.info._id,
-      roomId
-    );
-    console.log(res);
-  }
+    const res = await RoomApi.seenRoom(user.info._id, roomId);
+  };
 
   const roomSelect = async (index: number) => {
     if (roomSelected !== index) {
@@ -50,15 +44,8 @@ const ChatList = () => {
       ).unReadMsg;
 
       if (unReadMsgNumber >= 1) {
-        seenRoom(roomList.list[index].roomInfo._id)
+        seenRoom(roomList.list[index].roomInfo._id);
       }
-      // dispatch(
-      //   roomInfoActions.setRoomInfo({
-      //     roomName: result.roomName,
-      //     roomInfo: result.roomInfo,
-      //     roomAvatar: result.roomAvatar,
-      //   })
-      // );
       dispatch(roomInfoActions.setRoomInfo(roomList.list[index]));
       dispatch(
         roomListActions.seenRoom({
@@ -68,11 +55,10 @@ const ChatList = () => {
       );
       dispatch(messageActions.setMessage(result.messages));
       dispatch(fileActions.setFilesData(result.files));
-      dispatch(utilActions.clearReplyId());
 
       //@ts-ignore
       socket.emit(
-        "join new room",
+        'join new room',
         roomList.list[roomSelected]?.roomInfo._id,
         roomList.list[index].roomInfo._id
       );
@@ -83,24 +69,48 @@ const ChatList = () => {
 
   useEffect(() => {
     //@ts-ignore
-    socket.on("incUnreadMsg", (senderId, roomId) => {
+    socket.on('incUnreadMsg', (senderId, roomId) => {
       if (senderId !== user.info._id) {
         if (
           roomInfo.info === undefined ||
           roomInfo.info.roomInfo._id !== roomId
         ) {
           dispatch(roomListActions.incUnreadMsg({ senderId, roomId }));
-        }
-        else {
-          seenRoom(roomId)
+        } else {
+          seenRoom(roomId);
         }
       }
     });
 
     return () => {
-      socket.off("incUnreadMsg");
+      socket.off('incUnreadMsg');
     };
   }, [roomInfo, user]);
+
+  useEffect(() => {
+    const index = roomList.list.findIndex(
+      (it) => it.roomInfo._id === roomInfo.info?.roomInfo._id
+    );
+    setRoomSelected(index);
+  }, [roomInfo]);
+
+  useEffect(() => {
+    socket.on('receivegroupname', (info) => {
+      roomInfo.info &&
+        roomInfo.info.roomInfo._id === info.roomId &&
+        dispatch(roomInfoActions.changeGroupName(info.groupName));
+      dispatch(
+        roomListActions.changeGroupName({
+          roomId: info.roomId,
+          groupName: info.groupName,
+        })
+      );
+    });
+
+    return () => {
+      socket.off('receivegroupname');
+    };
+  }, [roomList, roomInfo]);
 
   return (
     <S.ChatList>
