@@ -97,7 +97,7 @@ io.on('connection', (socket) => {
     socket.to(roomId).emit('stop typing');
   });
 
-  socket.on('receiveNoti', (receiveId) => {
+  socket.on('sendNoti', (receiveId) => {
     const receiveUser = users.find(
       (user) => user.uid.toString() === receiveId.toString()
     );
@@ -112,6 +112,13 @@ io.on('connection', (socket) => {
     );
     receiveUser && socket.to(receiveUser.socketId).emit('new room');
   });
+
+  socket.on('unfriend', ({friendRelateId, receiveId}) => {
+    const receiveUser = users.find(
+      (user) => user.uid.toString() === receiveId.toString()
+    );
+    receiveUser && socket.to(receiveUser.socketId).emit('unfriended');
+  })
 
   socket.on('unsend msg', (receiveId, msgId) => {
     const receiveUser = users.find(
@@ -132,7 +139,7 @@ io.on('connection', (socket) => {
     socket.to(roomId).emit('receiveFiles', files);
   });
 
-  socket.on('calling', (callInfo) => {
+  socket.on('makecall', (callInfo) => {
     const { meetingId, callerId, receiverIds } = callInfo;
     const receiverArr = receiverIds.split(',');
 
@@ -145,6 +152,32 @@ io.on('connection', (socket) => {
     });
   });
 
+  socket.on('acceptCall', (callInfo) => {
+    const user = users.find((u) => u.uid === callInfo.callerId);
+    user &&
+      socket
+        .to(user.socketId)
+        .emit('callaccepted', { meetingId: callInfo.meetingId });
+  });
+
+  socket.on('cancelCall', (callInfo) => {
+    const { receiverIds } = callInfo;
+    const receiverArr = receiverIds.split(',');
+
+    receiverArr.forEach((it) => {
+      const receiverId = users.find((u) => u.uid === it);
+      receiverId && socket.to(receiverId.socketId).emit('callCanceled');
+    });
+  });
+
+  socket.on('declineCall', (callInfo) => {
+    const user = users.find((u) => u.uid === callInfo.callerId);
+    user &&
+      socket
+        .to(user.socketId)
+        .emit('callDeclined');
+  });
+
   socket.on('groupname', (roomId, roomUserIds, groupName) => {
     const _users = users.filter((u) => roomUserIds.includes(u.uid));
     if (_users.length > 0) {
@@ -152,6 +185,16 @@ io.on('connection', (socket) => {
         socket.to(u.socketId).emit('receivegroupname', { roomId, groupName });
       });
     }
+  });
+
+  socket.on('addmember', (uid) => {
+    const user = users.find((u) => u.uid === uid);
+    user && socket.to(user.socketId).emit('addmember');
+  });
+
+  socket.on('kickmember', (uid) => {
+    const user = users.find((u) => u.uid === uid);
+    user && socket.to(user.socketId).emit('kickmember');
   });
 
   // socket.on("sendMessage", (message, roomId) => {

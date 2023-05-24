@@ -3,6 +3,7 @@ const Notifications = require('../models/notificationModel');
 const Friends = require('../models/friendModel');
 const ErrorHandler = require('../utils/errorHandler');
 const Users = require('../models/userModel');
+const Rooms = require('../models/roomModel');
 
 const getFriendRequestList = asyncHandler(async (req, res, next) => {
   const id = req.user._id;
@@ -50,13 +51,13 @@ const friendReq = asyncHandler(async (req, res, next) => {
       },
     ],
   });
-  if (!friend) {
+  if (!friend || friend.status.type === 'disable') {
     await Notifications.create({
       receiveId: receiveId,
       requestId: id,
     });
     return res.status(200).json({
-      receiveId,
+      msg: 'Send friend request successfully',
     });
   } else {
     return next(new ErrorHandler('Already friend!', 400));
@@ -78,21 +79,37 @@ const friendAccept = asyncHandler(async (req, res, next) => {
       },
     ],
   });
-  if (notification && notification.status == 'Pending' && !inRelationship) {
+  if (notification && notification.status == 'Pending') {
     await Notifications.findByIdAndUpdate(notificationId, {
       $set: {
         status: 'Accepted',
       },
     });
-    const friendRelate = await Friends.create({
-      uid1: notification.requestId,
-      uid2: notification.receiveId,
-    });
 
-    return res.status(200).json({
-      message: 'Accept successfully',
-      friendRelate,
-    });
+    if (inRelationship && inRelationship.status.type === 'disable') {
+      //accept again
+      const friendRelate = await Friends.findByIdAndUpdate(
+        inRelationship._id,
+        {
+          $set: { 'status.type': 'available' },
+        },
+        { new: true }
+      );
+      return res.status(200).json({
+        message: 'Accept successfully',
+        friendRelateId: friendRelate._id,
+      });
+    } else {
+      //first accept
+      const friendRelate = await Friends.create({
+        uid1: notification.requestId,
+        uid2: notification.receiveId,
+      });
+      return res.status(200).json({
+        message: 'Accept successfully',
+        friendRelateId: friendRelate._id,
+      });
+    }
   } else {
     return next(new ErrorHandler('Unhandled error!', 500));
   }
@@ -205,12 +222,53 @@ const friendList = asyncHandler(async (req, res, next) => {
         ? friend.uid2
         : friend.uid1;
     const friendInfo = await Users.findById(friendId);
-    if (friendInfo) result.push(friendInfo);
+    if (friendInfo)
+      result.push({
+        ...friendInfo.toObject(),
+        type: friend.status.type,
+        friendRelateId: friend._id,
+      });
   }
 
   return res.status(200).json(result);
 });
 
+const unfriend = asyncHandler(async (req, res, next) => {
+  const friendId = req.params.id;
+
+  const friend = await Friends.findByIdAndUpdate(
+    friendId,
+    { 'status.type': 'disable' },
+    { new: true }
+  );
+
+  if (friend) {
+    console.log('Unfriend successfully');
+  } else {
+    return next(new ErrorHandler('Friend id is required', 400));
+  }
+
+  return res.status(200).json({
+    message: 'Unfriend successfully',
+  });
+});
+
+const checkFriend = asyncHandler(async (req, res, next) => {
+  const { id } = req.body;
+
+  const friend = await Friends.findOne({ _id: id, 'status.type': 'available' });
+  console.log(friend);
+
+  if (friend) {
+    return res.status(200).json({
+      message: 'Check successfully',
+    });
+  } else {
+    return res.status(500).json({
+      message: 'Not found',
+    });
+  }
+});
 module.exports = {
   getFriendRequestList,
   friendReq,
@@ -219,4 +277,6 @@ module.exports = {
   block,
   unblock,
   friendList,
+  unfriend,
+  checkFriend,
 };

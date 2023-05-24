@@ -15,7 +15,7 @@ export const Container = styled.div`
 `;
 
 export const Wrapper = styled.div`
-  ${tw`bg-secondary w-full rounded-[20px] flex shadow-md`}
+  ${tw`bg-secondary w-full rounded-[10px] flex shadow-md`}
 `;
 
 export const LeftWrapper = styled.div`
@@ -27,7 +27,7 @@ export const RightWrapper = styled.div`
 `;
 
 export const UserName = styled.div`
-  ${tw`self-stretch flex items-center max-w-6xl w-[350px] text-black flex-shrink-0 pl-24 pr-8 text-xl font-semibold py-2 rounded-[50px] bg-gradient-to-r from-secondary to-quaternary`}
+  ${tw`self-stretch flex items-center max-w-6xl w-[350px] text-black flex-shrink-0 pl-24 pr-8 text-xl font-semibold py-2 rounded-[10px] bg-gradient-to-r from-secondary to-quaternary`}
   @media only screen and (max-width: 1024px) {
     ${tw`hidden`}
   }
@@ -51,11 +51,11 @@ export const Search = styled.div`
   }
 `;
 export const SearchInput = styled.input`
-  ${tw`text-lg rounded-[50px] pr-10 pl-5 py-1 w-full outline-none`}
+  ${tw`text-lg rounded-[10px] pr-10 pl-5 py-1 w-full outline-none`}
 `;
 
 export const SearchIcon = styled(BiSearchAlt)`
-  ${tw`absolute hover:cursor-pointer text-[28px] text-secondary mr-1.5 right-0`}
+  ${tw`absolute hover:cursor-pointer text-[28px] text-quaternary mr-1.5 right-0 z-50`}
 `;
 
 export const Option = styled.div`
@@ -87,4 +87,57 @@ export const OptionNotifyNumber = styled.div<{ number: number }>`
   text-shadow: 2px 0 #fff, -2px 0 #fff, 0 2px #fff, 0 -2px #fff,
               1px 1px #fff, -1px -1px #fff, 1px -1px #fff, -1px 1px #fff;
   ${({ number }) => number >= 100 && tw`right-0`}
+`;
+
+// Search
+export const SearchModalItem = styled.div`
+  ${tw`relative flex p-2 rounded-[5px] items-center w-full bg-secondary`}
+`;
+
+export const SearchModalInfo = styled.div`
+  ${tw`relative flex items-center hover:cursor-pointer flex-grow`}
+`;
+
+export const SearchModalAvatar = styled.figure`
+  ${tw`relative w-[55px] h-[55px] rounded-full overflow-hidden flex-shrink-0`}
+  border: 1px solid gray;
+`;
+export const SearchModalNameWrapper = styled.div`
+  ${tw`relative ml-3.5 w-full`}
+`;
+
+export const SearchModalName = styled.div`
+  ${tw`text-blue-700 font-semibold text-[18px]`}
+`;
+
+export const SearchModalNumFriend = styled.div`
+  ${tw`text-[#434343] text-[16px]`}
+`;
+
+export const SearchModalOption = styled.div`
+  ${tw`text-white text-center rounded-[20px] min-w-[115px] font-semibold text-sm px-5 py-2.5 ml-1 hover:cursor-pointer hover:opacity-80`}
+`;
+
+export const SearchModalMessage = styled(SearchModalOption)`
+  ${tw`bg-blue-500`}
+`;
+
+export const SearchModalAddFriend = styled(SearchModalOption)`
+  ${tw`bg-quaternary`}
+`;
+
+export const SearchModalPending = styled(SearchModalOption)`
+  ${tw`bg-gray-500 opacity-50 hover:opacity-50 hover:cursor-default`}
+`;
+
+export const SearchModalAccept = styled(SearchModalOption)`
+  ${tw`bg-green-500 mr-1`}
+`;
+
+export const SearchModalDecline = styled(SearchModalOption)`
+  ${tw`bg-red-500`}
+`;
+
+export const FlexWrap = styled.div`
+  ${tw`flex`}
 `;

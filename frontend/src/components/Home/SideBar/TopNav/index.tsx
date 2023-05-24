@@ -7,24 +7,37 @@ const TopNav = () => {
   const [toggleCreateGroup, setToggleCreateGroup] = useState(false);
   const [toggleShowFriends, setToggleShowFriends] = useState(false);
 
+  const showModalFriend = () => {
+    setToggleShowFriends(true);
+  };
+
+  const closeModalFriend = () => {
+    setToggleShowFriends(false);
+  };
+
+  const showModalGroup = () => {
+    setToggleCreateGroup(true);
+  };
+
+  const closeModalGroup = () => {
+    setToggleCreateGroup(false);
+  };
   return (
     <S.Wrapper>
-      <S.Button>
+      <S.Button onClick={showModalGroup}>
         <S.Options>
-          <S.AddGroupOption onClick={() => setToggleCreateGroup(true)} />
+          <S.AddGroupOption />
+          Create group
         </S.Options>
-        {toggleCreateGroup && (
-          <CreateGroup setToggleCreateGroup={setToggleCreateGroup} />
-        )}
       </S.Button>
-      <S.Button>
+      <S.Button onClick={showModalFriend}>
         <S.Options>
-          <S.FriendsOption onClick={() => setToggleShowFriends(true)} />
+          <S.FriendsOption />
+          Friend list
         </S.Options>
-        {toggleShowFriends && (
-          <ShowFriends setToggleShowFriends={setToggleShowFriends} />
-        )}
       </S.Button>
+      <CreateGroup onClose={closeModalGroup} open={toggleCreateGroup} />
+      <ShowFriends onClose={closeModalFriend} open={toggleShowFriends} />
     </S.Wrapper>
   );
 };

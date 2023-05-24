@@ -9,6 +9,11 @@ const Files = require('../models/fileModel');
 const createRoom = asyncHandler(async (req, res, next) => {
   const { isGroup, users, friendRelateId } = req.body;
 
+  const roomExisted = await Rooms.findOne({ friendRelateId: friendRelateId });
+  if(roomExisted){
+    return res.status(200).json(roomExisted)
+  }
+
   if (users.every((user) => user.uid.toString() !== req.user._id.toString())) {
     users.push({
       uid: req.user._id,
@@ -16,7 +21,9 @@ const createRoom = asyncHandler(async (req, res, next) => {
       nickname: req.user.name,
     });
   } else {
-    return next(new ErrorHandler('Group member cannot include creator!', 400));
+    return next(
+      new ErrorHandler('Creating group member cannot include creator!', 400)
+    );
   }
 
   let roomToCreate = {};
@@ -72,7 +79,7 @@ const addAvatarForUserInRoom = (room, userInfos) => {
 const getRoomList = asyncHandler(async (req, res, next) => {
   const rooms = await Rooms.find({
     'users.uid': req.user._id,
-  });
+  }).sort({ updatedAt: -1 });
 
   //get all uid have in all rooms
   let uids = [];
@@ -118,32 +125,10 @@ const getRoomList = asyncHandler(async (req, res, next) => {
 const getRoomInfo = asyncHandler(async (req, res, next) => {
   const roomId = req.params.roomId;
 
-  const roomInfo = await Rooms.findById(roomId);
   const messages = await Messages.find({
     roomId: roomId,
-  }).sort({ createdAt: -1 });
-  const files = await Files.find({ roomId: roomId });
-
-  // //add avatar for each user in room
-  // let uids = [];
-  // roomInfo.users.forEach((user) => uids.push(user.uid));
-  // const userInfos = await Users.find({ _id: { $in: uids } });
-  // const editedUsers = addAvatarForUserInRoom(roomInfo, userInfos);
-  // const editedRoomInfo = { ...roomInfo.toObject(), users: editedUsers };
-
-  // //setup response value
-  // let roomAvatar = editedRoomInfo.users[0].avatar;
-  // let roomName = editedRoomInfo.users[0].nickname;
-
-  // if (editedRoomInfo.isGroup) {
-  //   roomAvatar = "";
-  //   roomName = "";
-  // } else if (
-  //   editedRoomInfo.users[1].uid.toString() !== req.user._id.toString()
-  // ) {
-  //   roomAvatar = editedRoomInfo.users[1].avatar;
-  //   roomName = editedRoomInfo.users[1].nickname;
-  // }
+  }).sort({ createdAt: -1 }).skip(0).limit(20);
+  const files = await Files.find({ roomId: roomId }).sort({ createdAt: -1 });
 
   if (messages && files) {
     res.status(200).json({
@@ -197,33 +182,72 @@ const addMember = asyncHandler(async (req, res, next) => {
 
   const getRoom = await Rooms.findById({ _id: roomId });
 
-  const findUser = getRoom.users.find((value) => value.uid === uid);
+  const findUser = getRoom.users.find(
+    (value) => value.uid.toString() === uid.toString()
+  );
 
-  res.status(200).json(findUser);
+  if (findUser) {
+    if (findUser.isLeave) {
+      const newRoomMember = await Rooms.findOneAndUpdate(
+        { _id: roomId, 'users.uid': findUser.uid },
+        {
+          $set: { 'users.$.isLeave': false },
+        },
+        { new: true }
+      );
+      return res.status(200).json({
+        newMember: getMember,
+        existed: true,
+      });
+    } else {
+      return next(
+        new ErrorHandler(`${getMember.name} was added to the group!`, 400)
+      );
+    }
+  } else {
+    const newRoomMember = await Rooms.findOneAndUpdate(
+      { _id: roomId },
+      {
+        $push: {
+          users: {
+            uid: uid,
+            nickname: getMember.name,
+          },
+        },
+      },
+      {
+        new: true,
+      }
+    );
+    return res.status(200).json({
+      newMember: getMember,
+      existed: false,
+    });
+  }
+});
 
-  // if (findUser) {
-  //   return next(
-  //     new ErrorHandler(`${getMember.name} was added to the group!`, 400)
-  //   );
-  // } else {
-  //   const newRoomMember = await Rooms.findOneAndUpdate(
-  //     { _id: roomId },
-  //     {
-  //       $push: {
-  //         users: {
-  //           uid: uid,
-  //           nickname: getMember.name,
-  //         },
-  //       },
-  //     },
-  //     {
-  //       new: true,
-  //     }
-  //   );
-  //   res.status(200).json({
-  //     newRoomMember,
-  //   });
-  // }
+const kickMember = asyncHandler(async (req, res, next) => {
+  const roomId = req.params.roomId;
+  const { uid } = req.body;
+
+  try {
+    if (!mongoose.isValidObjectId(uid)) {
+      return next(new ErrorHandler(`User id is required`, 400));
+    }
+    if (!roomId || !mongoose.isValidObjectId(roomId)) {
+      return next(new ErrorHandler(`Room id is required`, 400));
+    }
+
+    const newRoomMember = await Rooms.findOneAndUpdate(
+      { _id: roomId, 'users.uid': uid },
+      { $set: { 'users.$.isLeave': true } },
+      { new: true }
+    );
+
+    return res.status(200).json({ uid, roomId });
+  } catch (error) {
+    return res.status(400).json(error);
+  }
 });
 
 const increaseUnreadMsg = asyncHandler(async (req, res, next) => {
@@ -269,6 +293,7 @@ module.exports = {
   changeRoomName,
   setNickname,
   addMember,
+  kickMember,
   increaseUnreadMsg,
   userSeenRoom,
 };

@@ -1,6 +1,6 @@
-import styled from "styled-components";
-import tw from "twin.macro";
-import { IoIosArrowDropleft, IoIosArrowDropright } from "react-icons/io";
+import styled from 'styled-components';
+import tw from 'twin.macro';
+import { IoIosArrowDropleft, IoIosArrowDropright } from 'react-icons/io';
 
 export const ChatImageZoom = styled.div`
   ${tw`fixed top-0 left-0 bottom-0 right-0 flex justify-center items-center z-[999]`}
@@ -31,7 +31,7 @@ export const ImageList = styled.div`
 export const ImageListItem = styled.figure<{ active: boolean }>`
   ${tw`relative w-[75px] h-[75px] rounded-xl overflow-hidden cursor-pointer`}
   filter: brightness(0.6);
-  ${({active}) => active && `filter: brightness(1);`}
+  ${({ active }) => active && `filter: brightness(1);`}
 `;
 
 export const NavigateLeft = styled(IoIosArrowDropleft)`
@@ -40,4 +40,12 @@ export const NavigateLeft = styled(IoIosArrowDropleft)`
 
 export const NavigateRight = styled(IoIosArrowDropright)`
   ${tw`text-tertiary text-[50px] transition-all hover:text-quaternary hover:translate-x-[2px] hover:cursor-pointer`}
+`;
+
+export const CloseButton = styled.span`
+  ${tw`absolute top-5 right-5 text-white text-4xl cursor-pointer z-[99999999]`}
+`;
+
+export const Overlay = styled.div`
+  ${tw`absolute top-0 left-0 right-0 bottom-0 bg-[rgba(0, 0, 0, 0.5)]`}
 `;

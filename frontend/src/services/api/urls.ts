@@ -8,11 +8,11 @@ const API_BASE = `${BASEURL}/api`;
 export const API_URL = {
   checkUser: `${API_BASE}/user/checkUser`,
   register: `${API_BASE}/user/register`,
+  resetPassword: `${API_BASE}/user/reset-password`,
   login: `${API_BASE}/user/login`,
   logout: `${API_BASE}/user/logout`,
   editUserInfo: `${API_BASE}/user/update`,
   editAvatar: `${API_BASE}/user/update/avatar`,
-  resetPassword: `${API_BASE}/auth/password/reset`,
   getRoomList: `${API_BASE}/room`,
   getFriendList: `${API_BASE}/friend`,
   getRoomInfo: `${API_BASE}/room`,
@@ -25,6 +25,9 @@ export const API_URL = {
   friendDecline: `${API_BASE}/friend/decline`,
   block: `${API_BASE}/friend/block`,
   unblock: `${API_BASE}/friend/unblock`,
+  unfriend: `${API_BASE}/friend/unfriend`,
+  checkFriend: `${API_BASE}/friend/check-friend`,
+  getMessage: `${API_BASE}/message`,
   sendMessage: `${API_BASE}/message`,
   saveFile: `${API_BASE}/message/savefile`,
   getFile: `${API_BASE}/message/getfile`,
@@ -39,5 +42,7 @@ export const API_URL = {
   getCallToken: `${API_BASE}/call/get-token`,
   createMeeting: `${API_BASE}/call/create-meeting`,
   validateMeeting: `${API_BASE}/call/validate-meeting`,
-  changeGroupName: `${API_BASE}/room`
+  changeGroupName: `${API_BASE}/room`,
+  addMember: `${API_BASE}/room`,
+  kickMember: `${API_BASE}/room`,
 };

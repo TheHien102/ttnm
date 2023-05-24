@@ -1,7 +1,7 @@
-const asyncHandler = require('express-async-handler');
-const cloudinary = require('../utils/cloudinary');
+const asyncHandler = require("express-async-handler");
+const cloudinary = require("../utils/cloudinary");
 
-const UPLOAD_PRESET = 'upload-preset-hci';
+const UPLOAD_PRESET = "chatala_preset";
 
 const signedKey = asyncHandler(async (req, res, next) => {
   const { public_id } = req.body;

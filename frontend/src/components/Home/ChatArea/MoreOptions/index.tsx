@@ -2,7 +2,6 @@ import * as S from './MoreOptions.styled';
 import { getFileIcon, useOutsideClick } from '../../../Global/ProcessFunctions';
 import { fileType, roomInfo, userInfo } from '../../../../utils/types';
 import Image from 'next/image';
-import { UserAvatar } from '../../../../utils/dataConfig';
 import { IoMdArrowDropdown } from 'react-icons/io';
 import { useState } from 'react';
 import NicknameModal from './NicknameModal';
@@ -13,35 +12,34 @@ import { UsersApi } from '../../../../services/api/users';
 import GroupMembers from './GroupMembers';
 import { FriendApi } from '../../../../services/api/friend';
 import { selectFileState } from '../../../../features/redux/slices/fileSlice';
-import GroupNameModal from './GroupNameModel';
+import GroupNameModal from './GroupNameModal';
+import AddMemberModal from './AddMemberModal';
+import { Drawer, Modal, Popconfirm, message } from 'antd';
+import { useSocketContext } from '../../../../contexts/socket';
 
 interface IMoreOptions {
-  setToggleOption: (toggle: boolean) => void;
+  setToggleOption: () => void;
   setToggleImageZoom: (toggle: boolean) => void;
-  setImageZoomList: (value: { index: number; list: fileType[] }) => void;
+  setImageId: (value: string) => void;
+  setIsUnfriend: (toggle: boolean) => void;
   toggleOption: boolean;
   roomInfo: roomInfo;
+  isUnfriend: boolean;
 }
 
 const MoreOptions = ({
   setToggleOption,
-  setImageZoomList,
+  setImageId,
   setToggleImageZoom,
+  setIsUnfriend,
   roomInfo,
   toggleOption,
+  isUnfriend,
 }: IMoreOptions) => {
-  const handleOutsideClick = () => {
-    setToggleOption(false);
-  };
-
-  const moreOptionsRef = useOutsideClick(handleOutsideClick);
+  const socket = useSocketContext();
 
   const [photoExtend, setPhotoExtend] = useState(false);
   const [fileExtend, setFileExtend] = useState(false);
-  const [toggleNickname, setToggleNickname] = useState(false);
-  const [toggleFriendProfile, setToggleFriendProfile] = useState(false);
-  const [toggleGroupMembers, setToggleGroupMembers] = useState(false);
-  const [toggleGroupName, setToggleGroupName] = useState(false);
   const [friendProfile, setFriendProfile] = useState<userInfo>();
 
   const user = useSelector(selectUserState);
@@ -49,6 +47,11 @@ const MoreOptions = ({
 
   const photos = roomfiles.list.filter((file) => file.type === 'image');
   const files = roomfiles.list.filter((file) => file.type === 'file');
+
+  const activeAvatar = [];
+  roomInfo.roomInfo.users.forEach((u) => {
+    if (!u.isLeave) activeAvatar.push(u.avatar);
+  });
 
   // in case change nickname event happend
   const userNeedChange = roomInfo.roomInfo.users.find(
@@ -60,25 +63,59 @@ const MoreOptions = ({
       (it) => it.uid !== user.info._id
     );
     const _friend = await UsersApi.userFindById(friend.uid);
+
     setFriendProfile(_friend);
-    setToggleFriendProfile(true);
+    setModalUser(true);
   };
 
-  const photosClickHandler = (index: number) => {
+  const photosClickHandler = (imgId: string) => {
     setToggleImageZoom(true);
-    setImageZoomList({ index, list: photos });
+    setImageId(imgId);
   };
+
+  const [open, setOpen] = useState(false);
+  const showPopconfirm = () => {
+    setOpen(true);
+  };
+  const handleCancel = () => {
+    setOpen(false);
+  };
+  const handleUnfriend = async (friendRelateId: string) => {
+    const friend = roomInfo.roomInfo.users.find((u) => u.uid !== user.info._id);
+
+    const res = await FriendApi.unfriend(friendRelateId);
+    socket.emit('unfriend', { friendRelateId, receiveId: friend.uid });
+    message.success(res.message);
+    setIsUnfriend(true);
+  };
+
+  const [modalUser, setModalUser] = useState(false);
+  const [modalNickName, setModalNickName] = useState(false);
+  const [modalGroupMembers, setModalGroupMembers] = useState(false);
+  const [modalGroupName, setModalGroupName] = useState(false);
+  const [modalGroupAdd, setModalGroupAdd] = useState(false);
 
   return (
-    <S.MoreOptions ref={moreOptionsRef} toggleOption={toggleOption}>
+    <Drawer
+      // title='Room detail'
+      headerStyle={{ display: 'none' }}
+      placement="right"
+      onClose={() => {
+        setToggleOption();
+        handleCancel();
+      }}
+      open={toggleOption}
+      getContainer={false}
+    >
+      {/* <S.MoreOptions ref={moreOptionsRef} toggleOption={toggleOption}> */}
       <S.RoomInfo>
         {roomInfo.roomInfo.isGroup ? (
           <S.RoomInfoAvatar isGroup={1}>
-            {roomInfo.roomInfo.users.map(
-              (user, index) =>
+            {activeAvatar.map(
+              (url, index) =>
                 index <= 3 && (
                   <S.RoomInfoAvatarGroup key={index}>
-                    <Image src={user.avatar} alt="avatar" layout="fill" />
+                    <Image src={url} alt="avatar" layout="fill" />
                   </S.RoomInfoAvatarGroup>
                 )
             )}
@@ -95,33 +132,52 @@ const MoreOptions = ({
               : roomInfo.roomName}
           </S.RoomInfoName>
           {roomInfo.roomInfo.isGroup && (
-            <S.RoomInfoNameEditIcon onClick={() => setToggleGroupName(true)} />
+            <S.RoomInfoNameEditIcon onClick={() => setModalGroupName(true)} />
           )}
         </S.RoomInfoNameWrap>
       </S.RoomInfo>
       <S.OptionWrap>
         <S.WhiteBox>
-          {!roomInfo.roomInfo.isGroup && (
-            <S.NormalItem onClick={() => seeFriendProfile()}>
-              Friend&apos;s profile
-            </S.NormalItem>
-          )}
-          {!roomInfo.roomInfo.isGroup && (
-            <S.NormalItem onClick={() => setToggleNickname(true)}>
-              Change Nickname
-            </S.NormalItem>
-          )}
           {roomInfo.roomInfo.isGroup && (
-            <S.NormalItem onClick={() => setToggleGroupMembers(true)}>
-              Group Members
-            </S.NormalItem>
+            <>
+              <S.NormalItem onClick={() => setModalGroupMembers(true)}>
+                Group Members
+              </S.NormalItem>
+              <S.NormalItem onClick={() => setModalGroupAdd(true)}>
+                Add Members
+              </S.NormalItem>
+              {/* <S.DeleteItem onClick={() => setToggleKickMember(true)}>
+                Kick Members
+              </S.DeleteItem> */}
+            </>
           )}
           {!roomInfo.roomInfo.isGroup && (
-            <S.DeleteItem onClick={() => FriendApi.block(userNeedChange.uid)}>
-              Block
-            </S.DeleteItem>
+            <>
+              <S.NormalItem onClick={() => seeFriendProfile()}>
+                Friend&apos;s profile
+              </S.NormalItem>
+              {!isUnfriend && (
+                <S.NormalItem onClick={() => setModalNickName(true)}>
+                  Change Nickname
+                </S.NormalItem>
+              )}
+              {!isUnfriend && (
+                <Popconfirm
+                  title={`You're about to unfriend ${userNeedChange.nickname}`}
+                  description="Please confirm"
+                  open={open}
+                  onConfirm={() =>
+                    handleUnfriend(roomInfo.roomInfo.friendRelateId)
+                  }
+                  // okButtonProps={{ loading: confirmLoading }}
+                  onCancel={handleCancel}
+                  okType={'danger'}
+                >
+                  <S.DeleteItem onClick={showPopconfirm}>Unfriend</S.DeleteItem>
+                </Popconfirm>
+              )}
+            </>
           )}
-          {/* <S.DeleteItem>Delete this chat</S.DeleteItem> */}
         </S.WhiteBox>
         <S.WhiteBox>
           <S.Title onClick={() => setPhotoExtend(!photoExtend)}>
@@ -139,7 +195,7 @@ const MoreOptions = ({
               {photos.map((file, index) => (
                 <S.UploadedMedia
                   key={index}
-                  onClick={() => photosClickHandler(index)}
+                  onClick={() => photosClickHandler(file._id)}
                 >
                   <Image
                     src={file.url}
@@ -182,29 +238,34 @@ const MoreOptions = ({
           </S.ExtendContent>
         </S.WhiteBox>
       </S.OptionWrap>
-      {toggleNickname && (
-        <NicknameModal
-          setToggleNickname={setToggleNickname}
-          roomInfo={roomInfo}
-          userNeedChange={userNeedChange}
-        />
-      )}
-      {toggleFriendProfile && (
-        <UserInfo
-          friendProfile={friendProfile}
-          setUserInfoModal={setToggleFriendProfile}
-        />
-      )}
-      {toggleGroupMembers && (
-        <GroupMembers setToggleGroupMembers={setToggleGroupMembers} />
-      )}
-      {toggleGroupName && (
-        <GroupNameModal
-          setToggleGroupName={setToggleGroupName}
-          roomInfo={roomInfo}
-        />
-      )}
-    </S.MoreOptions>
+      <NicknameModal
+        closeModal={() => setModalNickName(false)}
+        open={modalNickName}
+        roomInfo={roomInfo}
+        userNeedChange={userNeedChange}
+      />
+      <UserInfo
+        friendProfile={friendProfile}
+        open={modalUser}
+        closeModal={() => setModalUser(false)}
+      />
+      <GroupMembers
+        open={modalGroupMembers}
+        closeModal={() => setModalGroupMembers(false)}
+        roomInfo={roomInfo}
+        user={user.info}
+      />
+      <AddMemberModal
+        open={modalGroupAdd}
+        closeModal={() => setModalGroupAdd(false)}
+        roomInfo={roomInfo}
+      />
+      <GroupNameModal
+        open={modalGroupName}
+        closeModal={() => setModalGroupName(false)}
+        roomInfo={roomInfo}
+      />
+    </Drawer>
   );
 };
 

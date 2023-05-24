@@ -1,6 +1,6 @@
-import styled, { keyframes } from "styled-components";
-import tw from "twin.macro";
-import { merge, zoomIn, slideInRight, slideInDown } from "react-animations";
+import styled, { keyframes } from 'styled-components';
+import tw from 'twin.macro';
+import { merge, zoomIn, slideInRight, slideInDown } from 'react-animations';
 
 const cbAnimate1 = merge(slideInRight, slideInDown);
 const NotiAnimate = keyframes`${merge(zoomIn, cbAnimate1)}`;
@@ -32,11 +32,11 @@ export const NotiList = styled.div`
 `;
 
 export const NotiText = styled.div`
-  ${tw`text-base italic p-3 text-center rounded-[50px] bg-[#bedee7] text-black`}
+  ${tw`text-base italic p-3 text-center rounded-[10px] bg-quaternary text-black`}
 `;
 
 export const NotiItem = styled.div`
-  ${tw`flex p-2 rounded-[20px] my-1.5 items-center relative w-full bg-tertiary`}
+  ${tw`flex p-2 rounded-[10px] my-1.5 items-center relative w-full bg-secondary`}
 `;
 
 export const NotiInfo = styled.div`
@@ -52,7 +52,7 @@ export const NotiNameWrapper = styled.div`
 `;
 
 export const NotiName = styled.div`
-  ${tw`text-primary font-semibold text-[18px] w-[175px]`}
+  ${tw`font-semibold text-[18px] w-[175px]`}
 `;
 
 export const NotiNumFriend = styled.div`

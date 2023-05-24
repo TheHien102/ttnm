@@ -6,12 +6,13 @@ import { useEffect, useState } from 'react';
 import { UsersApi } from '../../services/api/users';
 import { UserRegister } from '../../utils/types';
 import { ClipLoader } from 'react-spinners';
+import { message } from 'antd';
 
 const OTPCode = () => {
   const router = useRouter();
 
   const [checkError, setCheckError] = useState('false');
-  const [countdown, setCountdown] = useState(30);
+  const [countdown, setCountdown] = useState(120);
 
   const initialValues = {
     otpCode: '',
@@ -25,11 +26,11 @@ const OTPCode = () => {
       const data: UserRegister = {
         name: router.query.name as string,
         phone: router.query.phone as string,
-        password: router.query.password as string
+        password: router.query.password as string,
       };
-      
+
       await UsersApi.register(data);
-      alert('Registration succeed!');
+      message.success('Registration succeed!');
       router.push('/login');
     } catch {
       setCheckError('true');
@@ -47,28 +48,18 @@ const OTPCode = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       if (countdown > 0) {
-        setCountdown(countdown - 1);
+        setCountdown((pre) => pre - 1);
       } else {
         setCountdown(0);
       }
     }, 1000);
     return () => clearInterval(interval);
-  }, [countdown]);
+  }, []);
 
   return (
     <FormTemplate>
       <span>
-        <S.BackIcon
-          onClick={() =>
-            router.replace({
-              pathname: '/register',
-              query: {
-                name: router.query.name,
-                phone: router.query.phone
-              },
-            })
-          }
-        />
+        <S.BackIcon onClick={() => router.replace('/register')} />
       </span>
       <S.Suggest>Make sure your phone number is real!</S.Suggest>
       <S.Notify>
@@ -79,8 +70,8 @@ const OTPCode = () => {
           <S.NewForm>
             <S.SetWidth>
               <S.Input
-                placeholder='Verification OTP code'
-                name='otpCode'
+                placeholder="Verification OTP code"
+                name="otpCode"
                 checkerror={checkError}
               />
               {checkError === 'true' && <S.ErrorMsg>Incorrect otp!</S.ErrorMsg>}
@@ -88,7 +79,7 @@ const OTPCode = () => {
               {countdown <= 0 && (
                 <S.CheckPhoneNumber
                   onClick={() =>
-                    router.replace({
+                    router.push({
                       pathname: '/register',
                       query: {
                         name: router.query.name,
@@ -101,9 +92,9 @@ const OTPCode = () => {
                   <p>Please check your phone number again!</p>
                 </S.CheckPhoneNumber>
               )}
-              <S.Button type='submit' disabled={isSubmitting ? true : false}>
+              <S.Button type="submit" disabled={isSubmitting ? true : false}>
                 {isSubmitting ? (
-                  <ClipLoader color='#fff' size={25} />
+                  <ClipLoader color="#fff" size={25} />
                 ) : (
                   'Verify'
                 )}

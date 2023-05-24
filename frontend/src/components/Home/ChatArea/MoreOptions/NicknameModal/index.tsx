@@ -1,21 +1,22 @@
-import { useRef } from "react";
-import { useDispatch } from "react-redux";
-import {
-  roomInfoActions,
-} from "../../../../../features/redux/slices/roomInfoSlice";
-import { roomListActions } from "../../../../../features/redux/slices/roomListSlice";
-import { RoomApi } from "../../../../../services/api/room";
-import { roomInfo, roomUser } from "../../../../../utils/types";
-import * as S from "./NicknameModal.styled";
+import { useRef } from 'react';
+import { useDispatch } from 'react-redux';
+import { roomInfoActions } from '../../../../../features/redux/slices/roomInfoSlice';
+import { roomListActions } from '../../../../../features/redux/slices/roomListSlice';
+import { RoomApi } from '../../../../../services/api/room';
+import { roomInfo, roomUser } from '../../../../../utils/types';
+import * as S from './NicknameModal.styled';
+import { Modal, message } from 'antd';
 
 interface INickname {
-  setToggleNickname: (toggle: boolean) => void;
+  closeModal: () => void;
+  open: boolean;
   roomInfo: roomInfo;
   userNeedChange: roomUser;
 }
 
 const NicknameModal = ({
-  setToggleNickname,
+  closeModal,
+  open,
   roomInfo,
   userNeedChange,
 }: INickname) => {
@@ -24,6 +25,7 @@ const NicknameModal = ({
   const dispatch = useDispatch();
 
   const saveNickname = async () => {
+    if (input.current.value === '') return;
     try {
       await RoomApi.changeNickname(
         roomInfo.roomInfo._id,
@@ -43,24 +45,26 @@ const NicknameModal = ({
             nickname: input.current.value,
           })
         );
-      setToggleNickname(false);
+      message.success(`Change nickname to ${input.current.value} succeed`)
+      closeModal();
     } catch (err) {
       console.log(err);
-      alert(err.message);
+      message.error(err.message);
     }
   };
 
   return (
-    <S.NicknameModal>
-      <S.NicknameOverlay onClick={() => setToggleNickname(false)} />
-      <S.NicknameBody>
-        <S.NicknameTitle>
-          Change nickname for {userNeedChange.nickname}
-        </S.NicknameTitle>
-        <S.NicknameInput maxLength={50} ref={input} />
-        <S.NicknameSave onClick={saveNickname}>Save</S.NicknameSave>
-      </S.NicknameBody>
-    </S.NicknameModal>
+    <Modal
+      title={`Change nickname for ${userNeedChange?.nickname}`}
+      open={open}
+      onOk={saveNickname}
+      onCancel={closeModal}
+      okType="link"
+      destroyOnClose
+      centered
+    >
+      <S.NicknameInput maxLength={50} ref={input} />
+    </Modal>
   );
 };
 

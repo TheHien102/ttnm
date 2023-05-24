@@ -11,6 +11,21 @@ export type userInfo = {
   __v: number;
 };
 
+export type friendInfo = {
+  _id: string;
+  avatar: string;
+  banner: string;
+  name: string;
+  phone: string;
+  gender: string;
+  dob: string;
+  createdAt: string;
+  updatedAt: string;
+  __v: number;
+  type: string;
+  friendRelateId: string;
+};
+
 export type info = {
   name: string;
   gender: string;
@@ -80,6 +95,7 @@ export type roomInfo = {
     isGroup: boolean;
     lastMsg: string;
     updatedAt: string;
+    friendRelateId: string;
     users: roomUser[];
     __v: number;
     _id: string;
@@ -93,6 +109,7 @@ export type roomUser = {
   uid: string;
   unReadMsg: number;
   _id: string;
+  isLeave: boolean;
 };
 
 export type FormValue = {

@@ -13,7 +13,8 @@ import { messageActions } from '../src/features/redux/slices/messageSlice';
 import { friendListActions } from '../src/features/redux/slices/friendListSlice';
 import { FriendApi } from '../src/services/api/friend';
 import { useSocketContext } from '../src/contexts/socket';
-import CallNotiModel from '../src/components/Home/ChatArea/ChatAreaHead/CallNotiModel';
+import CallNotiModel from '../src/components/Home/ChatArea/ChatAreaHead/CallNotiModal';
+import { Button, Space, message, notification } from 'antd';
 
 const Home = () => {
   const router = useRouter();
@@ -21,10 +22,11 @@ const Home = () => {
   const dispatch = useDispatch();
   const roomInfo = useSelector(selectRoomInfoState);
 
-  const [receiveCall, setReceiveCall] = useState<boolean>(false);
+  const [callNotiShow, setCallNotiShow] = useState<boolean>(false);
   const [callInfo, setCallInfo] = useState<{
     meetingId: string;
     callerId: string;
+    isCaller: boolean;
   }>(undefined);
 
   //socket client
@@ -37,7 +39,11 @@ const Home = () => {
     });
     socket.on('new room', () => {
       getRoomList();
+      getFriendList();
     });
+    socket.on('unfriended', () => {
+      getFriendList();
+    })
     socket.on('unsend msg', (msgId) => {
       dispatch(messageActions.unsend(msgId));
     });
@@ -45,25 +51,46 @@ const Home = () => {
       dispatch(messageActions.delete(msgId));
     });
     socket.on('receiveCall', (callInfo) => {
+      console.log('receiveCall', callInfo);
       setCallInfo({
         meetingId: callInfo.meetingId,
         callerId: callInfo.callerId,
+        isCaller: false,
       });
-      setReceiveCall(true);
+      setCallNotiShow(true);
     });
   }, []);
 
+  const closeNoti = () => {
+    notification.destroy();
+    router.replace('/login');
+  };
+
+  const openNoti = () => {
+    const btn = (
+      <Button size="small" type='link' onClick={() => closeNoti()}>
+        Redirect me now
+      </Button>
+    );
+    notification.warning({
+      message: 'Your session is over, please login.',
+      description: `Redirect in 5s...`,
+      btn,
+      duration: 5,
+      placement: 'top',
+      onClose: closeNoti,
+    });
+  };
+
   const getRoomList = async () => {
     try {
-      dispatch(roomListActions.requestRoomList(null));
       const rooms = await RoomApi.getRoomList();
       dispatch(roomListActions.setRoomList(rooms.result));
     } catch (err: any) {
       console.log(err);
       if (err?.error.statusCode === 401) {
         if (err.message === 'Unauthorized!') {
-          alert('Your session is over, redirecting to login page.');
-          router.push('/login');
+          openNoti();
         }
       }
     }
@@ -71,12 +98,11 @@ const Home = () => {
 
   const getFriendList = async () => {
     try {
-      dispatch(friendListActions.requestFriendList(null));
       const friends = await FriendApi.friendList();
       dispatch(friendListActions.setFriendList(friends));
     } catch (err: any) {
       if (err?.error.statusCode === 400) {
-        alert(err.error.message);
+        message.error(err.error.message);
       }
     }
   };
@@ -94,8 +120,11 @@ const Home = () => {
           <SideBar />
           {roomInfo.info ? <ChatArea /> : <Welcome home={true} />}
         </S.Wrapper>
-        {receiveCall && callInfo && (
-          <CallNotiModel setReceiveCall={setReceiveCall} callInfo={callInfo} />
+        {callNotiShow && callInfo && (
+          <CallNotiModel
+            setCallNotiShow={setCallNotiShow}
+            callInfo={callInfo}
+          />
         )}
       </S.HomeContainer>
     </>

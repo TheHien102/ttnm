@@ -24,11 +24,12 @@ export const CreateGroupTitle = styled.div`
   ${tw`text-2xl font-semibold mb-3 ml-1 text-white`}
 `;
 
-export const CreateGroupSearch = styled.div`
+export const CreateGroupSearch = styled.div<{ noAdded: boolean }>`
   ${tw`relative w-full flex items-center mb-4`}
+  ${({ noAdded }) => !noAdded && tw`mb-0`}
 `;
-export const CreateGroupSearchInput = styled.input`
-  ${tw`bg-[#F8F8F8] text-lg rounded-[50px] pr-2 pl-9 py-2 w-full`}
+export const CreateGroupSearchInput = styled.input<{ noAdded: boolean }>`
+  ${tw`border-quaternary border-2 rounded-[10px] pr-2 pl-9 py-2 w-full`}
   outline: none;
 `;
 
@@ -37,17 +38,17 @@ export const CreateGroupSearchIcon = styled(BiSearchAlt)`
 `;
 
 export const CreateGroupAddedUsers = styled.div`
-  ${tw`flex overflow-hidden mb-2 items-center`}
+  ${tw`flex overflow-hidden my-2 items-center`}
 `;
 
 export const CreateGroupAddedUsersInner = styled.div`
-  ${tw`flex w-0 flex-grow overflow-auto bg-secondary rounded-[20px]`}
+  ${tw`flex w-0 flex-grow overflow-auto rounded-b-[20px]`}
   &::-webkit-scrollbar-track {
     ${tw`bg-transparent rounded-[10px]`}
   }
 
   &::-webkit-scrollbar {
-    ${tw`h-[5px]`}
+    ${tw`h-[3px]`}
   }
 
   &::-webkit-scrollbar-thumb {
@@ -60,11 +61,11 @@ export const CreateGroupSubmit = styled.div`
 `;
 
 export const CreateGroupAddedUser = styled.span`
-  ${tw`relative ml-1 mr-2 my-1 bg-gray-50 p-1 rounded-[20px] flex items-center`}
+  ${tw`relative ml-1 mr-2 my-1 bg-secondary p-1 rounded-[10px] flex items-center`}
 `;
 
 export const CreateGroupAddedUserName = styled.span`
-  ${tw`ml-2 w-[100px] overflow-ellipsis overflow-hidden whitespace-nowrap mr-1`}
+  ${tw`ml-2 w-[100px] font-semibold overflow-ellipsis overflow-hidden whitespace-nowrap mr-1`}
 `;
 
 export const CreateGroupAddedUserAvatar = styled.figure`
@@ -73,7 +74,7 @@ export const CreateGroupAddedUserAvatar = styled.figure`
 `;
 
 export const CreateGroupAddedUserRemove = styled(MdCancel)`
-  ${tw`absolute transition-colors bg-gray-200 rounded-full text-[20px] hover:opacity-80 hover:cursor-pointer right-[-5px] top-[-2px]`}
+  ${tw`absolute transition-colors bg-white rounded-full text-red-400 text-[20px] hover:text-red-500 hover:cursor-pointer right-[-5px] top-[-2px]`}
 `;
 
 export const GreateGroupList = styled.div`
@@ -92,7 +93,7 @@ export const GreateGroupList = styled.div`
 `;
 
 export const CreateGroupItem = styled.div`
-  ${tw`flex p-2 rounded-[20px] my-1.5 items-center relative w-full bg-secondary justify-between`}
+  ${tw`relative flex flex-grow my-1 p-2 items-center border-b-[2px] justify-between`}
 `;
 
 export const CreateGroupInfo = styled.div`
@@ -100,8 +101,8 @@ export const CreateGroupInfo = styled.div`
 `;
 
 export const CreateGroupAvatar = styled.figure`
-  ${tw`relative w-[55px] h-[55px] rounded-full overflow-hidden flex-shrink-0`}
-  border: 1px solid gray;
+  ${tw`relative w-[60px] h-[60px] rounded-lg overflow-hidden flex-shrink-0`}
+  border: 1px solid #eee;
 `;
 
 export const CreateGroupName = styled.div`
@@ -109,9 +110,9 @@ export const CreateGroupName = styled.div`
 `;
 
 export const CreateGroupAdd = styled.div`
-  ${tw`text-primary bg-quaternary rounded-[50px] font-semibold text-sm px-5 py-2.5 ml-1 hover:opacity-100 hover:cursor-pointer opacity-90`}
+  ${tw`text-primary bg-quaternary rounded-[10px] font-semibold text-sm px-5 py-2 ml-1 hover:opacity-100 hover:cursor-pointer opacity-90`}
 `;
 
 export const CreateGroupAdded = styled.div`
-  ${tw`text-primary bg-gray-500 rounded-[50px] font-semibold text-sm px-5 py-2.5 ml-1 hover:cursor-default`}
+  ${tw`text-primary bg-gray-500 rounded-[10px] font-semibold text-sm px-5 py-2 ml-1 hover:cursor-default`}
 `;

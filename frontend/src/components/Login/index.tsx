@@ -9,7 +9,7 @@ import { UsersApi } from '../../services/api/users';
 import { ClipLoader } from 'react-spinners';
 import { BsEyeSlash, BsEye } from 'react-icons/bs';
 import { useState } from 'react';
-import { CallApi } from '../../services/api/call';
+import { message } from 'antd';
 
 const Login = () => {
   const router = useRouter();
@@ -44,9 +44,9 @@ const Login = () => {
     } catch (error: any) {
       if (error?.error?.statusCode === 404) {
         setSubmitting(false);
-        alert('Wrong password or phone number!');
+        message.error('Wrong password or phone number!');
       } else {
-        alert('Call API failed!');
+        message.error('Login failed');
         console.log(error);
       }
     }
@@ -94,6 +94,7 @@ const Login = () => {
       </Formik>
       <S.Register>
         <Link href='/register'>New here? Let&apos;s Sign Up!</Link>
+        <Link href='/forgot-password'>Forgot password?</Link>
       </S.Register>
     </FormTemplate>
   );
