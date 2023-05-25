@@ -26,8 +26,8 @@ const WaitingToJoinScreen = () => {
       clearInterval(intervalRef.current);
     };
   }, []);
-
   const isTab = useIsTab();
+  //@ts-ignore
   const isMobile = useIsMobile();
 
   const animationDefaultOptions = {

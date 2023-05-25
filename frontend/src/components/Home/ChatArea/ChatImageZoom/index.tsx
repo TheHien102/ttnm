@@ -170,7 +170,7 @@ const ChatImageZoom = ({
                 src={image.url}
                 style={{
                   backgroundColor: '#eee',
-                  aspectRatio: 1,
+                  aspectRatio: '1/1',
                   height: 'auto',
                 }}
               />
